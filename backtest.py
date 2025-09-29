@@ -10,6 +10,7 @@ from models import Operation, get_portfolio_value
 
 def backtest(data, trial) -> float:
     data = data.copy()
+    data['Datetime'] = pd.to_datetime(data['timestamp'], unit= 'ms')
 
     rsi_window = trial.suggest_int('rsi_window', 5, 50)
     rsi_lower = trial.suggest_int('rsi_lower', 5, 35)
@@ -90,7 +91,7 @@ def backtest(data, trial) -> float:
     df['rets'] = df.value.pct_change()
     df.dropna(inplace=True)
 
-    mean_5m = df.rets.mean()
-    std_5m = df.rets.std()
+    mean_t = df.rets.mean()
+    std_t = df.rets.std()
 
-    return annualized_sharpe(mean=mean_5m, std=std_5m)
+    return annualized_sharpe(mean=mean_t, std=std_t)
