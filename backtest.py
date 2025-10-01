@@ -4,20 +4,32 @@ import pandas as pd
 import ta
 
 from signals import rsi_signals
-from metrics import annualized_sharpe
+from metrics import annualized_sharpe, annualized_calmar
 from models import Operation, get_portfolio_value
 
 
-def backtest(data, trial) -> float:
+def backtest(data, trial, params=None) -> float:
     data = data.copy()
     data['Datetime'] = pd.to_datetime(data['timestamp'], unit= 'ms')
 
-    rsi_window = trial.suggest_int('rsi_window', 5, 50)
-    rsi_lower = trial.suggest_int('rsi_lower', 5, 35)
-    rsi_upper = trial.suggest_int('rsi_upper', 65, 95)
-    stop_loss = trial.suggest_float('stop_loss', 0.01, 0.15)
-    take_profit = trial.suggest_float('take_profit', 0.01, 0.15)
-    n_shares = trial.suggest_int('n_shares', 50, 500)
+    if trial is not None:
+        # --- cuando Optuna está optimizando ---
+        rsi_window = trial.suggest_int('rsi_window', 5, 50)
+        rsi_lower = trial.suggest_int('rsi_lower', 5, 35)
+        rsi_upper = trial.suggest_int('rsi_upper', 65, 95)
+        stop_loss = trial.suggest_float('stop_loss', 0.01, 0.15)
+        take_profit = trial.suggest_float('take_profit', 0.01, 0.15)
+        n_shares = trial.suggest_int('n_shares', 50, 500)
+    elif params is not None:
+        # --- cuando re-ejecutas con best_params ---
+        rsi_window = params['rsi_window']
+        rsi_lower = params['rsi_lower']
+        rsi_upper = params['rsi_upper']
+        stop_loss = params['stop_loss']
+        take_profit = params['take_profit']
+        n_shares = params['n_shares']
+    else:
+        raise ValueError("Debes pasar un trial de Optuna o un diccionario params.")
 
     buy_sig, sell_sig = rsi_signals(data, rsi_window=rsi_window, rsi_lower=rsi_lower, rsi_upper=rsi_upper)
 
@@ -93,5 +105,11 @@ def backtest(data, trial) -> float:
 
     mean_t = df.rets.mean()
     std_t = df.rets.std()
+    values_port = df['value']
+    sharpe_anual = annualized_sharpe(mean=mean_t, std=std_t)
+    calmar = annualized_calmar(mean=mean_t, values=values_port)
 
-    return annualized_sharpe(mean=mean_t, std=std_t)
+    if params is None:
+        return calmar
+    else:
+        return calmar, values_port
