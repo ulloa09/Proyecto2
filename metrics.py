@@ -26,3 +26,10 @@ def annualized_sortino(mean: float, rets) -> float:
     annual_rets = (mean * 8760)
     annual_std_down = downside_deviation(rets) * np.sqrt(8760)
     return annual_rets / annual_std_down if annual_rets > 0 else 0
+
+def win_rate(rets: pd.Series) -> float:
+    total_trades = len(rets)
+    if total_trades == 0:
+        return 0
+    wins = (rets > 0).sum()
+    return wins / total_trades

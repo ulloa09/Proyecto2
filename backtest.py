@@ -4,7 +4,7 @@ import pandas as pd
 import ta
 
 from signals import rsi_signals
-from metrics import annualized_sharpe, annualized_calmar, annualized_sortino
+from metrics import annualized_sharpe, annualized_calmar, annualized_sortino, win_rate
 from models import Operation, get_portfolio_value
 
 
@@ -14,15 +14,15 @@ def backtest(data, trial, params=None) -> float:
     data.set_index('Datetime')
 
     if trial is not None:
-        # --- cuando Optuna está optimizando ---
+        # --- cuando Optuna optimiza ---
         rsi_window = trial.suggest_int('rsi_window', 5, 50)
         rsi_lower = trial.suggest_int('rsi_lower', 5, 35)
         rsi_upper = trial.suggest_int('rsi_upper', 65, 95)
         stop_loss = trial.suggest_float('stop_loss', 0.01, 0.15)
-        take_profit = trial.suggest_float('take_profit', 0.01, 0.2)
+        take_profit = trial.suggest_float('take_profit', 0.01, 0.15)
         n_shares = trial.suggest_int('n_shares', 1, 30)
     elif params is not None:
-        # --- cuando re-ejecutas con best_params ---
+        # --- cuando se usa con best_params ---
         rsi_window = params['rsi_window']
         rsi_lower = params['rsi_lower']
         rsi_upper = params['rsi_upper']
@@ -110,13 +110,14 @@ def backtest(data, trial, params=None) -> float:
     sharpe_anual = annualized_sharpe(mean=mean_t, std=std_t)
     calmar = annualized_calmar(mean=mean_t, values=values_port)
     sortino = annualized_sortino(mean_t, df['rets'])
+    wr = win_rate(df['rets'])
 
     results = pd.DataFrame()
     results['Portfolio'] = df['value'].tail(1)
     results['Sharpe'] = sharpe_anual
     results['Calmar'] = calmar
     results['Sortino'] = sortino
-
+    results['Win Rate'] = wr
 
     if params is None:
         return calmar

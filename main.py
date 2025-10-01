@@ -13,15 +13,16 @@ from split import split_dfs
 def main():
 
     data = pd.read_csv("Binance_BTCUSDT_1h.csv").dropna() ### CARGA DE DATOS
+    data = data.sort_values("timestamp").reset_index(drop=True)
     plt.plot(data['Close'], color="darkgray")
     plt.title("Close Bitcoin (24/7)")
     plt.grid()
-    plt.show()
+    #plt.show()
 
     train_df, test_df, validation_df = split_dfs(data=pd.read_csv("Binance_BTCUSDT_1h.csv"),
                                                  train=60, test=20, validation=20)
     study = optuna.create_study(direction="maximize")
-    study.optimize(lambda trial: backtest(trial=trial, data=train_df, params=None), n_trials=25)
+    study.optimize(lambda trial: backtest(trial=trial, data=train_df, params=None), n_trials=20)
     best_parameters = study.best_params
     best_value = study.best_value
     print("Best Parameters:")
