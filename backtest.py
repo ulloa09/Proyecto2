@@ -4,13 +4,14 @@ import pandas as pd
 import ta
 
 from signals import rsi_signals
-from metrics import annualized_sharpe, annualized_calmar
+from metrics import annualized_sharpe, annualized_calmar, annualized_sortino
 from models import Operation, get_portfolio_value
 
 
 def backtest(data, trial, params=None) -> float:
     data = data.copy()
-    data['Datetime'] = pd.to_datetime(data['timestamp'], unit= 'ms')
+    data['Datetime'] = pd.to_datetime(data['timestamp'], unit= 'ms', errors='coerce')
+    data.set_index('Datetime')
 
     if trial is not None:
         # --- cuando Optuna está optimizando ---
@@ -18,8 +19,8 @@ def backtest(data, trial, params=None) -> float:
         rsi_lower = trial.suggest_int('rsi_lower', 5, 35)
         rsi_upper = trial.suggest_int('rsi_upper', 65, 95)
         stop_loss = trial.suggest_float('stop_loss', 0.01, 0.15)
-        take_profit = trial.suggest_float('take_profit', 0.01, 0.15)
-        n_shares = trial.suggest_int('n_shares', 50, 500)
+        take_profit = trial.suggest_float('take_profit', 0.01, 0.2)
+        n_shares = trial.suggest_int('n_shares', 1, 30)
     elif params is not None:
         # --- cuando re-ejecutas con best_params ---
         rsi_window = params['rsi_window']
@@ -108,8 +109,16 @@ def backtest(data, trial, params=None) -> float:
     values_port = df['value']
     sharpe_anual = annualized_sharpe(mean=mean_t, std=std_t)
     calmar = annualized_calmar(mean=mean_t, values=values_port)
+    sortino = annualized_sortino(mean_t, df['rets'])
+
+    results = pd.DataFrame()
+    results['Portfolio'] = df['value'].tail(1)
+    results['Sharpe'] = sharpe_anual
+    results['Calmar'] = calmar
+    results['Sortino'] = sortino
+
 
     if params is None:
         return calmar
     else:
-        return calmar, values_port
+        return calmar, values_port, results
