@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 import ta
 
-from signals import rsi_signals, macd_signals
+from signals import rsi_signals, macd_signals, bbands_signals
 from metrics import annualized_sharpe, annualized_calmar, annualized_sortino, win_rate
 from models import Operation, get_portfolio_value
 
@@ -23,6 +23,8 @@ def backtest(data, trial, params=None) -> float:
         macd_fast = trial.suggest_int('macd_fast', 8, 20)
         macd_slow = trial.suggest_int('macd_slow', 21, 50)  # debe ser > fast
         macd_signal = trial.suggest_int('macd_signal', 5, 20)
+        bb_window = trial.suggest_int('bb_window', 10, 50)
+        bb_std = trial.suggest_float('bb_std', 1.5, 3.5)
         n_shares = trial.suggest_int('n_shares', 1, 30)
     elif params is not None:
         # --- cuando se usa con best_params ---
@@ -32,6 +34,8 @@ def backtest(data, trial, params=None) -> float:
         macd_fast = params['macd_fast']
         macd_slow = params['macd_slow']
         macd_signal = params['macd_signal']
+        bb_window = params['bb_window']
+        bb_std = params['bb_std']
         stop_loss = params['stop_loss']
         take_profit = params['take_profit']
         n_shares = params['n_shares']
@@ -40,9 +44,15 @@ def backtest(data, trial, params=None) -> float:
 
     buy_rsi, sell_rsi = rsi_signals(data, rsi_window=rsi_window, rsi_lower=rsi_lower, rsi_upper=rsi_upper)
     buy_macd, sell_macd = macd_signals(data, fast=macd_fast, slow=macd_slow, signal=macd_signal)
+    buy_bbands, sell_bbands = bbands_signals(data, bb_window, bb_std)
 
-    buy_signal = buy_macd & buy_rsi
-    sell_signal = sell_rsi & sell_macd
+    # Juntamos señales en un DataFrame para contar cuántas se activan
+    buy_df = pd.concat([buy_rsi, buy_macd, buy_bbands], axis=1)
+    sell_df = pd.concat([sell_rsi, sell_macd, sell_bbands], axis=1)
+
+    # Condición: al menos 2 señales activas
+    buy_signal = (buy_df.sum(axis=1) >= 2)
+    sell_signal = (sell_df.sum(axis=1) >= 2)
 
     rsi_indicator = ta.momentum.RSIIndicator(data.Close, window=rsi_window)
     data['rsi'] = rsi_indicator.rsi()

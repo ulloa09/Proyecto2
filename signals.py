@@ -38,3 +38,11 @@ def macd_signals(data: pd.DataFrame, fast: int, slow: int, signal: int):
     buy_cross = (prev_macd <= prev_sig) & (macd > macd_sig)   # cruce alcista
     sell_cross = (prev_macd >= prev_sig) & (macd < macd_sig)  # cruce bajista
     return buy_cross.fillna(False), sell_cross.fillna(False)
+
+def bbands_signals(data: pd.DataFrame, window: int, n_std: float):
+    bb = ta.volatility.BollingerBands(data.Close, window=window, window_dev=n_std)
+    lower, upper = bb.bollinger_lband(), bb.bollinger_hband()
+
+    buy = data['Close'] < lower
+    sell = data['Close'] > upper
+    return buy.fillna(False), sell.fillna(False)
