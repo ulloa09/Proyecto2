@@ -17,7 +17,7 @@ def main():
     plt.plot(data['Close'], color="darkgray")
     plt.title("Close Bitcoin (24/7)")
     plt.grid()
-    #plt.show()
+    plt.show()
 
     train_df, test_df, validation_df = split_dfs(data=pd.read_csv("Binance_BTCUSDT_1h.csv"),
                                                  train=60, test=20, validation=20)

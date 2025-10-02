@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 import ta
 
-from signals import rsi_signals
+from signals import rsi_signals, macd_signals
 from metrics import annualized_sharpe, annualized_calmar, annualized_sortino, win_rate
 from models import Operation, get_portfolio_value
 
@@ -20,27 +20,36 @@ def backtest(data, trial, params=None) -> float:
         rsi_upper = trial.suggest_int('rsi_upper', 65, 95)
         stop_loss = trial.suggest_float('stop_loss', 0.01, 0.15)
         take_profit = trial.suggest_float('take_profit', 0.01, 0.15)
+        macd_fast = trial.suggest_int('macd_fast', 8, 20)
+        macd_slow = trial.suggest_int('macd_slow', 21, 50)  # debe ser > fast
+        macd_signal = trial.suggest_int('macd_signal', 5, 20)
         n_shares = trial.suggest_int('n_shares', 1, 30)
     elif params is not None:
         # --- cuando se usa con best_params ---
         rsi_window = params['rsi_window']
         rsi_lower = params['rsi_lower']
         rsi_upper = params['rsi_upper']
+        macd_fast = params['macd_fast']
+        macd_slow = params['macd_slow']
+        macd_signal = params['macd_signal']
         stop_loss = params['stop_loss']
         take_profit = params['take_profit']
         n_shares = params['n_shares']
     else:
         raise ValueError("Debes pasar un trial de Optuna o un diccionario params.")
 
-    buy_sig, sell_sig = rsi_signals(data, rsi_window=rsi_window, rsi_lower=rsi_lower, rsi_upper=rsi_upper)
+    buy_rsi, sell_rsi = rsi_signals(data, rsi_window=rsi_window, rsi_lower=rsi_lower, rsi_upper=rsi_upper)
+    buy_macd, sell_macd = macd_signals(data, fast=macd_fast, slow=macd_slow, signal=macd_signal)
+
+    buy_signal = buy_macd & buy_rsi
+    sell_signal = sell_rsi & sell_macd
 
     rsi_indicator = ta.momentum.RSIIndicator(data.Close, window=rsi_window)
     data['rsi'] = rsi_indicator.rsi()
 
     historic = data.dropna()
-
-    historic['buy_signal'] = buy_sig
-    historic['sell_signal'] = sell_sig
+    historic['buy_signal'] = buy_signal
+    historic['sell_signal'] = sell_signal
 
     COM = 0.125 / 100
     SL = stop_loss
