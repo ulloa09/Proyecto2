@@ -4,8 +4,6 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 from backtest import backtest
-from utils import triangle
-from models import Operation
 from split import split_dfs
 
 
@@ -14,22 +12,17 @@ def main():
 
     data = pd.read_csv("Binance_BTCUSDT_1h.csv").dropna() ### CARGA DE DATOS
     data = data.sort_values("timestamp").reset_index(drop=True)
-    plt.plot(data['Close'], color="darkgray")
-    plt.title("Close Bitcoin (24/7)")
-    plt.grid()
-    plt.show()
 
     train_df, test_df, validation_df = split_dfs(data=pd.read_csv("Binance_BTCUSDT_1h.csv"),
                                                  train=60, test=20, validation=20)
     study = optuna.create_study(direction="maximize")
-    study.optimize(lambda trial: backtest(trial=trial, data=train_df, params=None), n_trials=50)
+    study.optimize(lambda trial: backtest(trial=trial, data=train_df, params=None), n_trials=100)
     best_parameters = study.best_params
     best_value = study.best_value
     print("Best Parameters:")
     print(best_parameters)
     print("Best Value:")
     print(best_value)
-
     # Re-ejecutar backtest con los mejores parámetros en:
     # TRAIN
     metric_train, curve_train, results_train = backtest(trial=None, data=train_df, params=best_parameters)

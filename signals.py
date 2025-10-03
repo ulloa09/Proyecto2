@@ -46,3 +46,28 @@ def bbands_signals(data: pd.DataFrame, window: int, n_std: float):
     buy = data['Close'] < lower
     sell = data['Close'] > upper
     return buy.fillna(False), sell.fillna(False)
+
+
+def obv_signals(data: pd.DataFrame, window: int = 20):
+    """
+    OBV (On-Balance Volume) signals.
+    Buy cuando OBV cruza por arriba de su media móvil.
+    Sell cuando OBV cruza por abajo.
+    """
+    # Calcular OBV acumulado
+    obv = ( (data['Close'] > data['Close'].shift(1)) * data['Volume BTC']
+          - (data['Close'] < data['Close'].shift(1)) * data['Volume BTC'] ).cumsum()
+    data['obv'] = obv
+
+    # Media móvil del OBV
+    obv_ma = obv.rolling(window=window).mean()
+    data['obv_ma'] = obv_ma
+
+    # Señales por cruce
+    prev_obv = obv.shift(1)
+    prev_ma = obv_ma.shift(1)
+
+    buy_obv = (prev_obv <= prev_ma) & (obv > obv_ma)     # cruce alcista
+    sell_obv = (prev_obv >= prev_ma) & (obv < obv_ma)    # cruce bajista
+
+    return buy_obv.fillna(False), sell_obv.fillna(False)
