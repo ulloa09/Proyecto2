@@ -26,7 +26,7 @@ def backtest(data, trial, params=None) -> float:
         bb_window = trial.suggest_int('bb_window', 10, 50)
         bb_std = trial.suggest_float('bb_std', 1.5, 2.5)
         obv_window = trial.suggest_int('obv_window', 10, 40)
-        n_shares = trial.suggest_float('n_shares', 1, 5)
+        n_shares = trial.suggest_float('n_shares', 0.1, 5)
     elif params is not None:
         # --- cuando se usa con best_params ---
         stop_loss = params['stop_loss']
@@ -71,7 +71,7 @@ def backtest(data, trial, params=None) -> float:
     active_short_positions: list[Operation] = []
     portfolio_value = [cash]
 
-    for i, row in historic.iterrows():
+    for row in historic.itertuples(index=False):
 
         # Close LONG positions
         for position in active_long_positions[:]: # Iterate over a copy of the list
