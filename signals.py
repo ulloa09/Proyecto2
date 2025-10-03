@@ -1,4 +1,4 @@
-import ta.momentum
+import ta.momentum, ta.trend, ta.volatility
 import pandas as pd
 from optuna import trial
 

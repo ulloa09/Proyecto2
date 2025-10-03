@@ -25,7 +25,7 @@ def backtest(data, trial, params=None) -> float:
         macd_signal = trial.suggest_int('macd_signal', 5, 20)
         bb_window = trial.suggest_int('bb_window', 10, 50)
         bb_std = trial.suggest_float('bb_std', 1.5, 3.5)
-        n_shares = trial.suggest_int('n_shares', 1, 30)
+        n_shares = trial.suggest_float('n_shares', 0.001, 5)
     elif params is not None:
         # --- cuando se usa con best_params ---
         rsi_window = params['rsi_window']
@@ -57,7 +57,7 @@ def backtest(data, trial, params=None) -> float:
     rsi_indicator = ta.momentum.RSIIndicator(data.Close, window=rsi_window)
     data['rsi'] = rsi_indicator.rsi()
 
-    historic = data.dropna()
+    historic = data.dropna().copy()
     historic['buy_signal'] = buy_signal
     historic['sell_signal'] = sell_signal
 
@@ -69,32 +69,42 @@ def backtest(data, trial, params=None) -> float:
     cash = 1_000_000
 
     active_long_positions: list[Operation] = []
+    active_short_positions: list[Operation] = []
 
     portfolio_value = [cash]
 
     for i, row in historic.iterrows():
 
-        # Close positions
+        # Close LONG positions
         for position in active_long_positions[:]:  # Iterate over a copy of the list
-            if row.Close > position.take_profit or row.Close < position.stop_loss:
+            if row.Close > position.price*(1+TP) or row.Close < position.price*(1-SL):
                 # Close the position
                 cash += row.Close * position.n_shares * (1 - COM)
                 # Remove the position from active positions
                 active_long_positions.remove(position)
                 continue
 
+        # Close LONG positions
+        for position in active_short_positions[:]:  # Iterate over a copy of the list
+            if row.Close > position.price * (1 + TP) or row.Close < position.price * (1 - SL):
+                # Close the position
+                cash += ((position.price * position.n_shares)+(position.price * n_shares - row.Close * position.n_shares))*(1 - COM)
+                # Remove the position from active positions
+                active_short_positions.remove(position)
+                continue
+
         # Buy
         # Check signal
         if not row.buy_signal:
             portfolio_value.append(get_portfolio_value(
-                cash, active_long_positions, [], row.Close, n_shares
+                cash, active_long_positions, [], row.Close, n_shares, COM
             ))
             continue
 
         # Do we have enough cash?
         if cash < row.Close * n_shares * (1 + COM):
             portfolio_value.append(get_portfolio_value(
-                cash, active_long_positions, [], row.Close, n_shares
+                cash, active_long_positions, [], row.Close, n_shares, COM
             ))
             continue
 
@@ -112,8 +122,10 @@ def backtest(data, trial, params=None) -> float:
 
         # This only works for long positions
         portfolio_value.append(get_portfolio_value(
-            cash, active_long_positions, [], row.Close, n_shares
+            cash, active_long_positions, [], row.Close, n_shares, COM
         ))
+
+
 
     cash += row.Close * len(active_long_positions) * n_shares * (1 - COM)
     active_long_positions = []
