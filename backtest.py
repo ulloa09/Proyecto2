@@ -15,18 +15,18 @@ def backtest(data, trial, params=None) -> float:
 
     if trial is not None:
         # --- cuando Optuna optimiza ---
-        stop_loss = trial.suggest_float('stop_loss', 0.05, 0.15)
-        take_profit = trial.suggest_float('take_profit', 0.05, 0.15)
-        rsi_window = trial.suggest_int('rsi_window', 5, 30)
-        rsi_lower = trial.suggest_int('rsi_lower', 15, 35)
-        rsi_upper = trial.suggest_int('rsi_upper', 65, 85)
-        macd_fast = trial.suggest_int('macd_fast', 8, 15)
+        stop_loss = trial.suggest_float('stop_loss', 0.02, 0.05)
+        take_profit = trial.suggest_float('take_profit', 0.04, 0.15)
+        rsi_window = trial.suggest_int('rsi_window', 10, 30)
+        rsi_lower = trial.suggest_int('rsi_lower', 25, 35)
+        rsi_upper = trial.suggest_int('rsi_upper', 65, 75)
+        macd_fast = trial.suggest_int('macd_fast', 5, 12)
         macd_slow = trial.suggest_int('macd_slow', 20, 40)  # debe ser > fast
-        macd_signal = trial.suggest_int('macd_signal', 5, 20)
-        bb_window = trial.suggest_int('bb_window', 10, 50)
-        bb_std = trial.suggest_float('bb_std', 1.5, 2.5)
-        obv_window = trial.suggest_int('obv_window', 10, 40)
-        n_shares = trial.suggest_float('n_shares', 0.1, 5)
+        macd_signal = trial.suggest_int('macd_signal', 9, 18)
+        bb_window = trial.suggest_int('bb_window', 20, 50)
+        bb_std = trial.suggest_float('bb_std', 1.5, 3)
+        obv_window = trial.suggest_int('obv_window', 20, 50)
+        n_shares = trial.suggest_float('n_shares', 0.5, 5)
     elif params is not None:
         # --- cuando se usa con best_params ---
         stop_loss = params['stop_loss']
