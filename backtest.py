@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 import ta
 
-from signals import rsi_signals, macd_signals, bbands_signals, obv_signals
+from signals import rsi_signals, macd_signals, bbands_signals, obv_signals, atr_breakout_signals, adx_signals
 from metrics import annualized_sharpe, annualized_calmar, annualized_sortino, win_rate
 from models import Operation, get_portfolio_value
 
@@ -24,8 +24,12 @@ def backtest(data, trial, params=None) -> float:
         macd_slow = trial.suggest_int('macd_slow', 20, 40)  # debe ser > fast
         macd_signal = trial.suggest_int('macd_signal', 9, 18)
         bb_window = trial.suggest_int('bb_window', 20, 50)
-        bb_std = trial.suggest_float('bb_std', 1.5, 3)
+        bb_std = trial.suggest_int('bb_std', 1, 3)
         obv_window = trial.suggest_int('obv_window', 20, 50)
+        atr_window = trial.suggest_int('atr_window', 10, 30)
+        atr_mult = trial.suggest_float('atr_mult', 1, 2.5)
+        adx_window = trial.suggest_int('adx_window', 10, 30)
+        adx_tresh = trial.suggest_int('adx_tresh', 20, 30)
         n_shares = trial.suggest_float('n_shares', 0.5, 5)
     elif params is not None:
         # --- cuando se usa con best_params ---
@@ -40,6 +44,10 @@ def backtest(data, trial, params=None) -> float:
         bb_window = params['bb_window']
         bb_std = params['bb_std']
         obv_window = params['obv_window']
+        atr_window = params['atr_window']
+        atr_mult = params['atr_mult']
+        adx_window = params['adx_window']
+        adx_tresh = params['adx_tresh']
         n_shares = params['n_shares']
     else:
         raise ValueError("Debes pasar un trial de Optuna o un diccionario params.")
@@ -48,10 +56,26 @@ def backtest(data, trial, params=None) -> float:
     buy_macd, sell_macd = macd_signals(data, fast=macd_fast, slow=macd_slow, signal=macd_signal)
     buy_bbands, sell_bbands = bbands_signals(data, bb_window, bb_std)
     buy_obv, sell_obv = obv_signals(data, window=obv_window)
+    buy_atr, sell_atr = atr_breakout_signals(data, atr_window=atr_window, atr_mult=atr_mult)
+    buy_adx, sell_adx = adx_signals(data, window=adx_window, threshold=adx_tresh)
 
     # Juntamos señales en un DataFrame para contar cuántas se activan
-    buy_df = pd.concat([buy_rsi, buy_macd, buy_bbands, buy_obv], axis=1)
-    sell_df = pd.concat([sell_rsi, sell_macd, sell_bbands, sell_obv], axis=1)
+    buy_df = pd.concat([
+                        buy_rsi,
+                        buy_macd,
+                        buy_bbands,
+                        buy_obv,
+                        buy_atr,
+                        buy_adx,
+    ], axis=1)
+    sell_df = pd.concat([
+                         sell_rsi,
+                         #sell_macd,
+                         sell_bbands,
+                         #sell_obv,
+                         #sell_atr,
+                         #sell_adx
+    ], axis=1)
 
     # Condición: al menos 2 señales activas
     buy_signal = (buy_df.sum(axis=1) >= 2)
@@ -89,34 +113,7 @@ def backtest(data, trial, params=None) -> float:
                 # Remove the position from active positions
                 active_short_positions.remove(position)
 
-        '''
-        # BUY
-        # Check signal
-        if not row.buy_signal:
-            portfolio_value.append(get_portfolio_value(
-                cash, active_long_positions, [], row.Close, n_shares, COM
-            ))
-            continue
 
-        # Do we have enough cash?
-        if cash < row.Close * n_shares * (1 + COM):
-            portfolio_value.append(get_portfolio_value(
-                cash, active_long_positions, [], row.Close, n_shares, COM
-            ))
-            continue
-
-        # Discount the cost
-        cash -= row.Close * n_shares * (1 + COM)
-        # Save the operation as active position
-        active_long_positions.append(Operation(
-            time=row.Datetime,
-            price=row.Close,
-            stop_loss=row.Close * (1 - SL),
-            take_profit=row.Close * (1 + TP),
-            n_shares=n_shares,
-            type='LONG'
-        ))
-        '''
         # BUY
         # Check signal
         if row.buy_signal:
@@ -153,33 +150,7 @@ def backtest(data, trial, params=None) -> float:
             cash, long_ops=active_long_positions, short_ops=active_short_positions,
             current_price=row.Close, COM=COM
         ))
-        '''
-        # Do we have enough cash?
-        if cash < row.Close * n_shares * (1 + COM):
-            portfolio_value.append(get_portfolio_value(
-                cash, active_long_positions, [], row.Close, n_shares, COM
-            ))
-            continue
 
-        # Discount the cost
-        cash -= row.Close * n_shares * (1 + COM)
-        # Save the operation as active position
-        active_long_positions.append(Operation(
-            time=row.Datetime,
-            price=row.Close,
-            stop_loss=row.Close * (1 - SL),
-            take_profit=row.Close * (1 + TP),
-            n_shares=n_shares,
-            type='LONG'
-        ))
-
-        # This only works for long positions
-        portfolio_value.append(get_portfolio_value(
-            cash, active_long_positions, [], row.Close, n_shares, COM
-        ))
-        '''
-
-    #cash += row.Close * len(active_long_positions) * n_shares * (1 - COM)
     active_long_positions = []
     active_short_positions = []
 
