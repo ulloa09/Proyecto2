@@ -2,6 +2,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 from backtest import backtest
+from comparacion import compare_btc_vs_portfolio
+from results import show_results
 from split import split_dfs
 
 # --- Función principal para re-ejecutar el backtest con los mejores parámetros obtenidos ---
@@ -26,6 +28,8 @@ def best():
     # --- Ejecución del backtest con los mejores parámetros en el conjunto de validación ---
     metric_validation, curve_validation, results_validation = backtest(trial=None, data=validation_df,
                                                                        params=best_parameters)
+    # --- Visualización de resultados generales ---
+    show_results(curve_train, curve_test, curve_validation, train_df, test_df, validation_df)
 
     # --- Graficación de la evolución del portafolio para cada conjunto ---
     # Reindexar cada curva para que inicien donde terminó la anterior
@@ -51,6 +55,9 @@ def best():
     print(results_train.head())
     print(results_test.head())
     print(results_validation.head())
+
+    compare_btc_vs_portfolio(curve_train, curve_test, curve_validation, data_path='Binance_BTCUSDT_1h.csv')
+
 
 # --- Ejecución del script ---
 if __name__ == "__main__":

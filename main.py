@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 from tqdm import tqdm
 
 from backtest import backtest
+from comparacion import compare_btc_vs_portfolio
 from results import show_results
 from split import split_dfs
 from walk_forward_objective import walk_forward_objective
@@ -27,7 +28,7 @@ from walk_forward_objective import walk_forward_objective
 def main():
 
     # --- Definición del número de iteraciones para la optimización ---
-    n = 100
+    n = 500
 
     # --- Carga y preprocesamiento de datos históricos ---
     data = pd.read_csv("Binance_BTCUSDT_1h.csv").dropna()
@@ -87,6 +88,7 @@ def main():
     print(results_test.head())
     print(results_validation.head())
 
+    compare_btc_vs_portfolio(curve_train, curve_test, curve_validation, data_path='Binance_BTCUSDT_1h.csv')
 
 #######################################################################
 # --- Ejecución del script principal ---
