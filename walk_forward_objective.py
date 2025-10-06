@@ -4,6 +4,11 @@ from sklearn.model_selection import TimeSeriesSplit
 from backtest import backtest
 import pandas as pd
 
+# --- Propósito general ---
+# Este archivo implementa la función objetivo para la optimización de parámetros
+# mediante Optuna, utilizando validación cruzada temporal (walk-forward analysis).
+# La función evalúa parámetros en diferentes segmentos temporales y devuelve el promedio
+# del Calmar ratio obtenido, permitiendo seleccionar los parámetros óptimos para el backtest.
 
 def walk_forward_objective(trial, data: pd.DataFrame, n_splits: int) -> float:
     """
@@ -20,7 +25,10 @@ def walk_forward_objective(trial, data: pd.DataFrame, n_splits: int) -> float:
         float: promedio del Calmar ratio en todos los splits.
     """
 
-    # Parámetros a optimizar (idénticos a los que ya usas en tu backtest)
+    # --- Definición de parámetros a optimizar ---
+    # Aquí se definen los parámetros que Optuna buscará optimizar.
+    # Cada parámetro es sugerido dentro de un rango específico,
+    # siguiendo la configuración esperada para el backtest.
     params = {
         'stop_loss': trial.suggest_float('stop_loss', 0.02, 0.05),
         'take_profit': trial.suggest_float('take_profit', 0.04, 0.15),
@@ -40,10 +48,16 @@ def walk_forward_objective(trial, data: pd.DataFrame, n_splits: int) -> float:
         'n_shares': trial.suggest_float('n_shares', 0.5, 5),
     }
 
+    # --- Configuración de la validación cruzada temporal ---
+    # Se utiliza TimeSeriesSplit para dividir los datos en n_splits segmentos
+    # manteniendo el orden temporal, lo que es crucial para evitar fugas de información
+    # en series temporales.
     tscv = TimeSeriesSplit(n_splits=n_splits)
     scores = []
 
-    # Recorre los splits temporales
+    # --- Evaluación de cada split temporal ---
+    # Para cada segmento de prueba generado por TimeSeriesSplit,
+    # se ejecuta el backtest con los parámetros actuales y se calcula el Calmar ratio.
     for _, test_idx in tscv.split(data):
         test_data = data.iloc[test_idx].reset_index(drop=True)
 
@@ -53,5 +67,7 @@ def walk_forward_objective(trial, data: pd.DataFrame, n_splits: int) -> float:
         # Guarda la métrica Calmar obtenida en este split
         scores.append(calmar)
 
-    # Devuelve el promedio del Calmar Ratio
+    # --- Resultado final ---
+    # Se devuelve el promedio del Calmar ratio obtenido en todos los splits,
+    # representando el desempeño medio esperado con los parámetros actuales.
     return float(np.mean(scores))
