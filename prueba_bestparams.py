@@ -4,28 +4,30 @@ import matplotlib.pyplot as plt
 from backtest import backtest
 from split import split_dfs
 
+# --- Función principal para re-ejecutar el backtest con los mejores parámetros obtenidos ---
 def best():
+    # --- Carga de datos ---
     data = pd.read_csv("Binance_BTCUSDT_1h.csv").dropna()  ### CARGA DE DATOS
     data = data.sort_values("timestamp").reset_index(drop=True)
 
+    # --- División del dataset en conjuntos de entrenamiento, prueba y validación ---
     train_df, test_df, validation_df = split_dfs(data=pd.read_csv("Binance_BTCUSDT_1h.csv"),
                                                  train=60, test=20, validation=20)
-    # Best try:
+    # --- Definición de los mejores parámetros obtenidos en la optimización ---
     best_parameters = {'stop_loss': 0.04998883807787347, 'take_profit': 0.12285313073332124, 'rsi_window': 29, 'rsi_lower': 26, 'rsi_upper': 74, 'macd_fast': 11, 'macd_slow': 25, 'macd_signal': 11, 'bb_window': 20, 'bb_std': 3, 'obv_window': 20, 'atr_window': 12, 'atr_mult': 2.1481660625542567, 'adx_window': 29, 'adx_tresh': 29, 'n_shares': 4.842593653355739}
 
 
-    # Re-ejecutar backtest con los mejores parámetros en:
-    # TRAIN
+    # --- Ejecución del backtest con los mejores parámetros en el conjunto de entrenamiento ---
     metric_train, curve_train, results_train = backtest(trial=None, data=train_df, params=best_parameters)
 
-    # TEST
+    # --- Ejecución del backtest con los mejores parámetros en el conjunto de prueba ---
     metric_test, curve_test, results_test = backtest(trial=None, data=test_df, params=best_parameters)
 
-    # VALIDATION
+    # --- Ejecución del backtest con los mejores parámetros en el conjunto de validación ---
     metric_validation, curve_validation, results_validation = backtest(trial=None, data=validation_df,
                                                                        params=best_parameters)
 
-    #### GRÁFICAS
+    # --- Graficación de la evolución del portafolio para cada conjunto ---
     # Reindexar cada curva para que inicien donde terminó la anterior
     curve_train = curve_train.reset_index(drop=True)
     curve_test = curve_test.reset_index(drop=True)
@@ -45,9 +47,11 @@ def best():
     plt.grid(True)
     plt.show()
 
+    # --- Presentación de los primeros registros de los resultados obtenidos en cada conjunto ---
     print(results_train.head())
     print(results_test.head())
     print(results_validation.head())
 
+# --- Ejecución del script ---
 if __name__ == "__main__":
     best()
