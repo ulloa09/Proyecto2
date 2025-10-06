@@ -5,25 +5,26 @@ import matplotlib.pyplot as plt
 from tqdm import tqdm
 
 from backtest import backtest
+from results import show_results
 from split import split_dfs
 from walk_forward_objective import walk_forward_objective
 
 
 def main():
 
-    n = 500
+    n = 100
 
     data = pd.read_csv("Binance_BTCUSDT_1h.csv").dropna() ### CARGA DE DATOS
     data = data.sort_values("timestamp").reset_index(drop=True)
 
-    train_df, test_df, validation_df = split_dfs(data=pd.read_csv("Binance_BTCUSDT_1h.csv"),
+    train_df, test_df, validation_df = split_dfs(data=data,
                                                  train=60, test=20, validation=20)
 
     optuna.logging.set_verbosity(optuna.logging.WARNING)
     study = optuna.create_study(direction="maximize")
     pbar = tqdm(total=n, desc="Optuna optimization", ncols=80)
     for _ in range(n):
-        study.optimize(lambda trial: walk_forward_objective(trial=trial, data=train_df, n_splits=4),
+        study.optimize(lambda trial: walk_forward_objective(trial=trial, data=train_df, n_splits=3),
                        n_trials=1, catch=(Exception,), n_jobs=-1)
         pbar.update(1)
     pbar.close()
@@ -42,6 +43,9 @@ def main():
 
     #VALIDATION
     metric_validation, curve_validation, results_validation = backtest(trial=None, data=validation_df, params=best_parameters)
+
+    # Mostrar resultados
+    show_results(curve_train, curve_test, curve_validation, train_df, test_df, validation_df)
 
     #### GRÁFICAS
     # Reindexar cada curva para que inicien donde terminó la anterior
