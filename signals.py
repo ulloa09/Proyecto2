@@ -2,8 +2,26 @@ import ta.momentum, ta.trend, ta.volatility
 import pandas as pd
 from optuna import trial
 
+# --- Propósito general del archivo ---
+# Este archivo contiene funciones para generar señales de compra y venta basadas en diferentes indicadores técnicos.
+# Cada función calcula un indicador específico y determina puntos de entrada y salida en el mercado según reglas definidas.
+# Las señales se devuelven como series booleanas alineadas con los datos de precios de entrada.
 
 def rsi_signals(data:pd.DataFrame, rsi_window: int, rsi_lower: int, rsi_upper: int):
+    # --- Indicador: RSI (Relative Strength Index) ---
+    # --- Funcionamiento ---
+    # Calcula el RSI usando una ventana temporal definida (rsi_window).
+    # Genera señales de compra cuando el RSI está por debajo del umbral inferior (rsi_lower),
+    # indicando condiciones de sobreventa.
+    # Genera señales de venta cuando el RSI está por encima del umbral superior (rsi_upper),
+    # indicando condiciones de sobrecompra.
+    # --- Parámetros ---
+    # data: DataFrame con datos de precios, debe contener columna 'Close'.
+    # rsi_window: ventana para cálculo del RSI.
+    # rsi_lower: umbral inferior para señal de compra.
+    # rsi_upper: umbral superior para señal de venta.
+    # --- Retorno ---
+    # Tupla de dos Series booleanas (buy_signals, sell_signals) alineadas con data.
 
     data = data.copy()
     rsi_indicator = ta.momentum.RSIIndicator(data.Close, window=rsi_window)
@@ -20,6 +38,19 @@ def macd_signals(data: pd.DataFrame, fast: int, slow: int, signal: int):
     Buy cuando MACD cruza por arriba de la Signal; sell cuando cruza por abajo.
     Devuelve (buy_signals, sell_signals) alineados con `data`.
     """
+    # --- Indicador: MACD (Moving Average Convergence Divergence) ---
+    # --- Funcionamiento ---
+    # Calcula las medias móviles exponenciales rápidas y lentas y la línea de señal.
+    # Genera señal de compra cuando la línea MACD cruza hacia arriba la línea de señal (crossover alcista).
+    # Genera señal de venta cuando la línea MACD cruza hacia abajo la línea de señal (crossover bajista).
+    # --- Parámetros ---
+    # data: DataFrame con datos de precios, debe contener columna 'Close'.
+    # fast: ventana para media móvil rápida.
+    # slow: ventana para media móvil lenta (debe ser mayor que fast).
+    # signal: ventana para la línea de señal.
+    # --- Retorno ---
+    # Tupla de dos Series booleanas (buy_signals, sell_signals) alineadas con data.
+
     # Garantiza relación válida
     data = data.copy()
     if slow <= fast:
@@ -40,6 +71,18 @@ def macd_signals(data: pd.DataFrame, fast: int, slow: int, signal: int):
     return buy_cross.fillna(False), sell_cross.fillna(False)
 
 def bbands_signals(data: pd.DataFrame, window: int, n_std: int):
+    # --- Indicador: Bandas de Bollinger ---
+    # --- Funcionamiento ---
+    # Calcula las bandas superior e inferior basadas en la media móvil y desviaciones estándar.
+    # Señal de compra cuando el precio cierra por debajo de la banda inferior (posible sobreventa).
+    # Señal de venta cuando el precio cierra por encima de la banda superior (posible sobrecompra).
+    # --- Parámetros ---
+    # data: DataFrame con datos de precios, debe contener columna 'Close'.
+    # window: tamaño de la ventana para la media móvil.
+    # n_std: número de desviaciones estándar para las bandas.
+    # --- Retorno ---
+    # Tupla de dos Series booleanas (buy, sell) alineadas con data.
+
     bb = ta.volatility.BollingerBands(data.Close, window=window, window_dev=n_std)
     lower, upper = bb.bollinger_lband(), bb.bollinger_hband()
 
@@ -54,6 +97,18 @@ def obv_signals(data: pd.DataFrame, window: int = 20):
     Buy cuando OBV cruza por arriba de su media móvil.
     Sell cuando OBV cruza por abajo.
     """
+    # --- Indicador: OBV (On-Balance Volume) ---
+    # --- Funcionamiento ---
+    # Calcula el OBV acumulado basado en cambios de precio y volumen.
+    # Calcula una media móvil del OBV para suavizar la señal.
+    # Señal de compra cuando OBV cruza hacia arriba su media móvil (indicación de entrada de volumen positivo).
+    # Señal de venta cuando OBV cruza hacia abajo su media móvil.
+    # --- Parámetros ---
+    # data: DataFrame con datos de precios y volumen, debe contener 'Close' y 'Volume BTC'.
+    # window: tamaño de la ventana para la media móvil del OBV.
+    # --- Retorno ---
+    # Tupla de dos Series booleanas (buy_obv, sell_obv) alineadas con data.
+
     data = data.copy()
     # Calcular OBV acumulado
     obv = ( (data['Close'] > data['Close'].shift(1)) * data['Volume BTC']
@@ -79,6 +134,18 @@ def adx_signals(data: pd.DataFrame, window: int , threshold: float):
     Buy: +DI cruza arriba de -DI y ADX >= threshold.
     Sell: -DI cruza arriba de +DI y ADX >= threshold.
     """
+    # --- Indicador: ADX (Average Directional Index) y DI (Directional Indicators) ---
+    # --- Funcionamiento ---
+    # Calcula ADX para medir fuerza de tendencia y +DI/-DI para dirección.
+    # Señal de compra cuando +DI cruza hacia arriba de -DI y ADX supera el umbral (tendencia fuerte alcista).
+    # Señal de venta cuando -DI cruza hacia arriba de +DI y ADX supera el umbral (tendencia fuerte bajista).
+    # --- Parámetros ---
+    # data: DataFrame con datos de precios, debe contener 'High', 'Low', 'Close'.
+    # window: ventana para cálculo del ADX y DI.
+    # threshold: valor mínimo de ADX para confirmar fuerza de tendencia.
+    # --- Retorno ---
+    # Tupla de dos Series booleanas (buy_adx, sell_adx) alineadas con data.
+
     data = data.copy()
     adx_ind = ta.trend.ADXIndicator(
         high=data['High'], low=data['Low'], close=data['Close'], window=window
@@ -102,6 +169,19 @@ def atr_breakout_signals(data: pd.DataFrame, atr_window: int, atr_mult: float):
     Buy: Close > (High rolling máximo - ATR * multiplicador)
     Sell: Close < (Low rolling mínimo + ATR * multiplicador)
     """
+    # --- Indicador: ATR (Average True Range) y ruptura de rango ---
+    # --- Funcionamiento ---
+    # Calcula ATR para medir volatilidad.
+    # Calcula máximos y mínimos recientes del precio en una ventana móvil.
+    # Señal de compra cuando el precio cierra por encima del máximo reciente menos un múltiplo del ATR (ruptura al alza).
+    # Señal de venta cuando el precio cierra por debajo del mínimo reciente más un múltiplo del ATR (ruptura a la baja).
+    # --- Parámetros ---
+    # data: DataFrame con datos de precios, debe contener 'High', 'Low', 'Close'.
+    # atr_window: ventana para cálculo del ATR y máximos/mínimos móviles.
+    # atr_mult: multiplicador del ATR para definir zona de ruptura.
+    # --- Retorno ---
+    # Tupla de dos Series booleanas (buy_atr, sell_atr) alineadas con data.
+
     data = data.copy()
 
     # Calcular ATR
