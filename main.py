@@ -6,11 +6,12 @@ from tqdm import tqdm
 
 from backtest import backtest
 from split import split_dfs
+from walk_forward_objective import walk_forward_objective
 
 
 def main():
 
-    n = 300
+    n = 500
 
     data = pd.read_csv("Binance_BTCUSDT_1h.csv").dropna() ### CARGA DE DATOS
     data = data.sort_values("timestamp").reset_index(drop=True)
@@ -22,7 +23,7 @@ def main():
     study = optuna.create_study(direction="maximize")
     pbar = tqdm(total=n, desc="Optuna optimization", ncols=80)
     for _ in range(n):
-        study.optimize(lambda trial: backtest(trial=trial, data=train_df, params=None),
+        study.optimize(lambda trial: walk_forward_objective(trial=trial, data=train_df, n_splits=4),
                        n_trials=1, catch=(Exception,), n_jobs=-1)
         pbar.update(1)
     pbar.close()
