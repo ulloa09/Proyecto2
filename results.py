@@ -1,3 +1,4 @@
+import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from backtest import backtest
@@ -71,6 +72,7 @@ def show_results(train_df, test_df, validation_df, params, plot: bool = True):
     print_table('Annual', annual)
     print_table('Quarterly', quarterly)
     print_table('Monthly', monthly)
+    print('Rendimiento anual promedio:\n',np.round(annual.mean(),4))
 
     if plot:
         (annual * 100).plot(kind='bar', figsize=(10, 4), title='Annual Returns (%)')
