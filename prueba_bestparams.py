@@ -20,7 +20,7 @@ def best():
      'rsi_upper': 75, 'macd_fast': 8, 'macd_slow': 40, 'macd_signal': 17, 'bb_window': 36, 'bb_std': 3,
      'obv_window': 38, 'atr_window': 10, 'atr_mult': 1.0527979122714386, 'adx_window': 22, 'adx_tresh': 22,
      'n_shares': 4.768467501024193}
-    # {'stop_loss': 0.04998883807787347, 'take_profit': 0.12285313073332124, 'rsi_window': 29, 'rsi_lower': 26, 'rsi_upper': 74, 'macd_fast': 11, 'macd_slow': 25, 'macd_signal': 11, 'bb_window': 20, 'bb_std': 3, 'obv_window': 20, 'atr_window': 12, 'atr_mult': 2.1481660625542567, 'adx_window': 29, 'adx_tresh': 29, 'n_shares': 4.842593653355739}
+
     # --- Ejecución del backtest con los mejores parámetros en el conjunto de entrenamiento ---
     metric_train, curve_train, results_train = backtest(trial=None, data=train_df, params=best_parameters)
 
@@ -47,7 +47,7 @@ def best():
     plt.plot(curve_test.index, curve_test.values, label="Test", color='blue', linewidth=2)
     plt.plot(curve_validation.index, curve_validation.values, label="Validation", color='green', linewidth=2)
     plt.title("Evolución del Portafolio (Mejor estrategia)")
-    plt.xlabel("Fecha")
+    plt.xlabel("Tiempo (horas)")
     plt.ylabel("Valor del Portafolio")
     plt.legend()
     plt.grid(True)
