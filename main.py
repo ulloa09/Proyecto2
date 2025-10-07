@@ -63,7 +63,7 @@ def main():
     metric_validation, curve_validation, results_validation = backtest(trial=None, data=validation_df, params=best_parameters)
 
     # --- Visualización de resultados generales ---
-    show_results(curve_train, curve_test, curve_validation, train_df, test_df, validation_df)
+    #show_results(curve_train, curve_test, curve_validation, train_df, test_df, validation_df)
 
     # --- Reindexación de curvas y visualización gráfica de la evolución del portafolio ---
     curve_train = curve_train.reset_index(drop=True)

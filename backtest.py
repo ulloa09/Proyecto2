@@ -96,7 +96,9 @@ def backtest(data, trial, params=None) -> float:
 
     # --- Preparación del DataFrame con señales ---
     # Se limpia el DataFrame para eliminar filas con datos faltantes y se añaden columnas con las señales generadas.
-    historic = data.dropna().copy()
+    #print("Antes de dropna:", data.shape)
+    historic = data.copy()
+    #print("Después de dropna:", historic.shape)
     historic['buy_signal'] = buy_signal
     historic['sell_signal'] = sell_signal
 
@@ -190,7 +192,7 @@ def backtest(data, trial, params=None) -> float:
     df = pd.DataFrame()
     df['value'] = portfolio_value
     df['rets'] = df.value.pct_change()
-    df.dropna(inplace=True)
+    #df.dropna(inplace=True)
 
     # Se calculan las métricas estadísticas para evaluar la estrategia:
     # - Sharpe anualizado mide el retorno ajustado al riesgo.

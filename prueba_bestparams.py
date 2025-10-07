@@ -29,7 +29,7 @@ def best():
     metric_validation, curve_validation, results_validation = backtest(trial=None, data=validation_df,
                                                                        params=best_parameters)
     # --- Visualización de resultados generales ---
-    show_results(curve_train, curve_test, curve_validation, train_df, test_df, validation_df)
+    show_results(train_df, test_df, validation_df, params = best_parameters)
 
     # --- Graficación de la evolución del portafolio para cada conjunto ---
     # Reindexar cada curva para que inicien donde terminó la anterior
