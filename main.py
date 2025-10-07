@@ -34,7 +34,7 @@ def main():
     data = pd.read_csv("Binance_BTCUSDT_1h.csv").dropna()
     data = data.sort_values("timestamp").reset_index(drop=True)
 
-    # --- División de los datos en conjuntos de entrenamiento, prueba y validación ---
+    # --- Divisise ón de los datos en conjuntos de entrenamiento, prueba y validación ---
     train_df, test_df, validation_df = split_dfs(data=data,
                                                  train=60, test=20, validation=20)
 
@@ -63,7 +63,7 @@ def main():
     metric_validation, curve_validation, results_validation = backtest(trial=None, data=validation_df, params=best_parameters)
 
     # --- Visualización de resultados generales ---
-    #show_results(curve_train, curve_test, curve_validation, train_df, test_df, validation_df)
+    show_results(train_df, test_df, validation_df, params=best_parameters)
 
     # --- Reindexación de curvas y visualización gráfica de la evolución del portafolio ---
     curve_train = curve_train.reset_index(drop=True)

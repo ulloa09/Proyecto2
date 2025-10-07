@@ -96,9 +96,7 @@ def backtest(data, trial, params=None) -> float:
 
     # --- Preparación del DataFrame con señales ---
     # Se limpia el DataFrame para eliminar filas con datos faltantes y se añaden columnas con las señales generadas.
-    #print("Antes de dropna:", data.shape)
     historic = data.copy()
-    #print("Después de dropna:", historic.shape)
     historic['buy_signal'] = buy_signal
     historic['sell_signal'] = sell_signal
 
